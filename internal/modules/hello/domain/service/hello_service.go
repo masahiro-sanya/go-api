@@ -14,5 +14,5 @@ func NewHelloService() *HelloService {
 
 // CreateHelloMessage はHelloメッセージを作成します
 func (s *HelloService) CreateHelloMessage() *entity.Hello {
-	return entity.NewHello("Hello, World!")
+	return entity.NewHello("Hello, Hot Reload Test2!")
 }
