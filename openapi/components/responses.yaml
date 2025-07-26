@@ -1,0 +1,61 @@
+ErrorResponse:
+  type: object
+  properties:
+    error:
+      type: string
+      description: Error message
+      example: "Internal server error"
+    code:
+      type: integer
+      description: Error code
+      example: 500
+    timestamp:
+      type: string
+      format: date-time
+      description: Error timestamp
+      example: "2024-01-01T00:00:00Z"
+  required:
+    - error
+    - code
+    - timestamp
+
+NotFoundResponse:
+  type: object
+  properties:
+    error:
+      type: string
+      description: Error message
+      example: "Resource not found"
+    code:
+      type: integer
+      description: Error code
+      example: 404
+  required:
+    - error
+    - code
+
+ValidationErrorResponse:
+  type: object
+  properties:
+    error:
+      type: string
+      description: Error message
+      example: "Validation failed"
+    code:
+      type: integer
+      description: Error code
+      example: 400
+    details:
+      type: array
+      items:
+        type: object
+        properties:
+          field:
+            type: string
+            description: Field name
+          message:
+            type: string
+            description: Validation message
+  required:
+    - error
+    - code 

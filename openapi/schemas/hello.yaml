@@ -1,0 +1,14 @@
+type: object
+properties:
+  message:
+    type: string
+    description: Hello message
+    example: "Hello, World!"
+  timestamp:
+    type: string
+    format: date-time
+    description: Current timestamp
+    example: "2024-01-01T00:00:00Z"
+required:
+  - message
+  - timestamp 

@@ -1,0 +1,62 @@
+openapi: 3.0.3
+info:
+  title: Go API
+  description: Go API with Echo framework and Modular DDD architecture
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8081
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /hello:
+    get:
+      tags:
+        - Hello
+      summary: Hello World endpoint
+      description: Returns a hello world message with timestamp
+      operationId: GetHello
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/hello.yaml'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: './components/responses.yaml#/ErrorResponse'
+
+components:
+  schemas:
+    HelloResponse:
+      $ref: './schemas/hello.yaml'
+  responses:
+    ErrorResponse:
+      $ref: './components/responses.yaml#/ErrorResponse'
+    NotFoundResponse:
+      $ref: './components/responses.yaml#/NotFoundResponse'
+    ValidationErrorResponse:
+      $ref: './components/responses.yaml#/ValidationErrorResponse'
+  parameters:
+    CommonHeaders:
+      $ref: './components/parameters.yaml#/CommonHeaders'
+    ContentTypeHeader:
+      $ref: './components/parameters.yaml#/ContentTypeHeader'
+    AcceptHeader:
+      $ref: './components/parameters.yaml#/AcceptHeader'
+
+tags:
+  - name: Hello
+    description: Hello World operations 

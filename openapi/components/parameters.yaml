@@ -1,0 +1,26 @@
+CommonHeaders:
+  in: header
+  name: Authorization
+  schema:
+    type: string
+    description: Bearer token for authentication
+    example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  required: false
+
+ContentTypeHeader:
+  in: header
+  name: Content-Type
+  schema:
+    type: string
+    enum: [application/json]
+    default: application/json
+  required: true
+
+AcceptHeader:
+  in: header
+  name: Accept
+  schema:
+    type: string
+    enum: [application/json]
+    default: application/json
+  required: false 

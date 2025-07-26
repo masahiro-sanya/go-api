@@ -21,6 +21,11 @@ go.work
 tmp/
 *.log
 
+# Generated files
+internal/di/wire_gen.go
+bin/
+dist/
+
 # IDE files
 .vscode/
 .idea/
