@@ -90,6 +90,7 @@ status: ## プロジェクトの状態を確認
 	@echo "Go version: $(shell go version)"
 	@echo "Wire version: $(shell wire version 2>/dev/null || echo 'Not installed')"
 	@echo "Air version: $(shell air version 2>/dev/null || echo 'Not installed')"
+	@echo "Docker version: $(shell docker --version 2>/dev/null || echo 'Not installed')"
 	@echo "Dependencies: $(shell go list -m all | wc -l) packages"
 	@echo "====================="
 
@@ -108,4 +109,53 @@ ci-build: ci-deps ci-wire ## CI用：ビルド（依存関係とWireコード生
 	go build -o bin/main cmd/main.go
 
 ci: ci-deps ci-wire ci-test ci-build ## CI用：完全なビルドパイプライン
-	@echo "CI build completed successfully!" 
+	@echo "CI build completed successfully!"
+
+# Docker用コマンド
+docker-build: ## Dockerイメージをビルド
+	docker build -t go-api:latest .
+
+docker-run: ## Dockerコンテナを実行
+	docker run -p 8083:8081 --name go-api go-api:latest
+
+docker-stop: ## Dockerコンテナを停止
+	docker stop go-api || true
+	docker rm go-api || true
+
+docker-clean: ## Dockerイメージとコンテナを削除
+	docker stop go-api || true
+	docker rm go-api || true
+	docker rmi go-api:latest || true
+
+# Docker Compose用コマンド
+docker-compose-up: ## Docker Composeでサービスを起動
+	docker-compose up -d
+
+docker-compose-down: ## Docker Composeでサービスを停止
+	docker-compose down
+
+docker-compose-logs: ## Docker Composeのログを表示
+	docker-compose logs -f
+
+docker-compose-restart: ## Docker Composeでサービスを再起動
+	docker-compose restart
+
+# 開発用Docker Compose
+docker-compose-dev-up: ## 開発用Docker Composeでサービスを起動（ホットリロード）
+	docker-compose --profile dev up -d
+
+docker-compose-dev-down: ## 開発用Docker Composeでサービスを停止
+	docker-compose --profile dev down
+
+docker-compose-dev-logs: ## 開発用Docker Composeのログを表示
+	docker-compose --profile dev logs -f
+
+# 統合コマンド
+docker-dev: docker-compose-dev-up ## 開発環境をDockerで起動
+	@echo "Development environment started with Docker!"
+	@echo "API is available at: http://localhost:8083"
+	@echo "View logs with: make docker-compose-dev-logs"
+
+docker-prod: docker-build docker-run ## 本番環境をDockerで起動
+	@echo "Production environment started with Docker!"
+	@echo "API is available at: http://localhost:8083" 

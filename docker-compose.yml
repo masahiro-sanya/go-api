@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-api
+    ports:
+      - "8083:8081"
+    environment:
+      - SERVER_PORT=8081
+      - SERVER_HOST=0.0.0.0
+      - LOG_LEVEL=info
+    volumes:
+      # 開発時のみ使用（本番では削除）
+      - ./logs:/app/logs
+    networks:
+      - go-api-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8081/hello",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 開発用サービス（ホットリロード対応）
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-api-dev
+    ports:
+      - "8083:8081"
+    environment:
+      - SERVER_PORT=8081
+      - SERVER_HOST=0.0.0.0
+      - LOG_LEVEL=debug
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+    networks:
+      - go-api-network
+    restart: unless-stopped
+    profiles:
+      - dev
+    # 開発用のオーバーライド
+    command: sh -c "go install github.com/air-verse/air@latest && air"
+
+networks:
+  go-api-network:
+    driver: bridge
+
+volumes:
+  go-mod-cache:

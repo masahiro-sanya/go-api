@@ -1,0 +1,30 @@
+FROM golang:1.22-alpine
+
+# Install build dependencies and development tools
+RUN apk add --no-cache git ca-certificates tzdata wget
+
+# Install development tools
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+RUN go install github.com/google/wire/cmd/wire@latest
+RUN go install github.com/air-verse/air@latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Generate Wire code
+RUN wire ./internal/di
+
+# Expose port
+EXPOSE 8081
+
+# Run Air for hot reload
+CMD ["air"] 

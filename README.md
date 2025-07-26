@@ -9,6 +9,8 @@ OpenAPI.yamlから取り込んでGoのAPIを作成するプロジェクトです
 - **依存注入**: Wire
 - **アーキテクチャ**: モジュラーDDD
 - **API仕様**: OpenAPI 3.0
+- **コンテナ化**: Docker & Docker Compose
+- **クラウド対応**: AWS ECS / Google Cloud Run
 
 ## プロジェクト構造
 
@@ -54,6 +56,10 @@ go-api/
 ├── go.sum                        # 依存関係チェックサム
 ├── .air.toml                     # Air設定（ホットリロード）
 ├── .gitignore                    # Git除外設定
+├── .dockerignore                 # Docker除外設定
+├── Dockerfile                    # 本番用Dockerfile
+├── Dockerfile.dev                # 開発用Dockerfile
+├── docker-compose.yml            # Docker Compose設定
 ├── Makefile                      # ビルド・開発コマンド
 └── README.md                     # このファイル
 ```
@@ -79,11 +85,13 @@ go-api/
 ### 前提条件
 
 - Go 1.21以上
+- Docker & Docker Compose
 - Air (ホットリロード用)
 - Wire (依存注入用)
 
-### インストール
+### ローカル開発環境
 
+#### 方法1: ローカル環境で実行
 ```bash
 # 依存関係のインストール
 go mod tidy
@@ -98,25 +106,45 @@ go install github.com/air-verse/air@latest
 wire ./internal/di
 ```
 
-## 使用方法
-
-### 通常の実行
-
+#### 方法2: Dockerで実行（推奨）
 ```bash
-go run cmd/main.go
+# 開発環境をDockerで起動（ホットリロード対応）
+make docker-dev
+
+# または本番環境をDockerで起動
+make docker-prod
 ```
 
-### ホットリロードでの実行
+## 使用方法
+
+### ローカル実行
 
 ```bash
+# 通常の実行
+go run cmd/main.go
+
+# ホットリロードでの実行
 air
+```
+
+### Docker実行
+
+```bash
+# 開発環境（ホットリロード対応）
+make docker-dev
+
+# 本番環境
+make docker-prod
+
+# ログの確認
+make docker-compose-dev-logs
 ```
 
 ### APIテスト
 
 ```bash
 # Hello Worldエンドポイントのテスト
-curl http://localhost:8081/hello
+curl http://localhost:8083/hello
 ```
 
 ## モジュール構成
@@ -141,6 +169,10 @@ Hello Worldメッセージを返します。
   "timestamp": "2024-01-01T00:00:00Z"
 }
 ```
+
+**アクセスURL:**
+- ローカル実行: `http://localhost:8081/hello`
+- Docker実行: `http://localhost:8083/hello`
 
 ## OpenAPI構成
 
@@ -199,6 +231,22 @@ make dev-restart   # 開発サーバーを再起動（クリーンから実行�
 make debug         # デバッグモードで実行
 ```
 
+### Docker用コマンド
+```bash
+make docker-dev    # 開発環境をDockerで起動（ホットリロード対応）
+make docker-prod   # 本番環境をDockerで起動
+make docker-build  # Dockerイメージをビルド
+make docker-clean  # Dockerイメージとコンテナを削除
+```
+
+### Docker Compose用コマンド
+```bash
+make docker-compose-up      # Docker Composeでサービスを起動
+make docker-compose-down    # Docker Composeでサービスを停止
+make docker-compose-logs    # Docker Composeのログを表示
+make docker-compose-dev-up  # 開発用Docker Composeでサービスを起動
+```
+
 ### 本番用コマンド
 ```bash
 make prod-build    # 本番用ビルド（依存関係、Wireコード生成、ビルド）
@@ -221,11 +269,12 @@ make format        # コードをフォーマット
 
 ### 推奨開発フロー
 ```bash
-# 初回セットアップ
-make setup
+# 初回セットアップ（Docker使用）
+make docker-dev
 
-# 日常的な開発
-make dev-start     # 開発サーバーを起動（依存関係とWireコード生成を含む）
+# またはローカル環境
+make setup
+make dev-start
 
 # 新しいモジュール追加時
 make new-module MODULE_NAME=user
@@ -255,6 +304,9 @@ go test ./...
 
 # 4. アプリケーションのビルド
 go build -o bin/main cmd/main.go
+
+# 5. Dockerイメージのビルド
+docker build -t go-api:latest .
 ```
 
 ### 生成ファイルの管理
@@ -296,7 +348,79 @@ jobs:
     
     - name: Build
       run: go build -o bin/main cmd/main.go
+    
+    - name: Build Docker image
+      run: docker build -t go-api:latest .
+    
+    - name: Test Docker image
+      run: |
+        docker run -d --name test-api -p 8083:8081 go-api:latest
+        sleep 10
+        curl -f http://localhost:8083/hello
+        docker stop test-api
+        docker rm test-api
 ```
+
+## クラウドデプロイ
+
+### AWS ECS
+
+```bash
+# ECRにプッシュ
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-west-2.amazonaws.com
+docker tag go-api:latest 123456789012.dkr.ecr.us-west-2.amazonaws.com/go-api:latest
+docker push 123456789012.dkr.ecr.us-west-2.amazonaws.com/go-api:latest
+```
+
+### Google Cloud Run
+
+```bash
+# Cloud Runにデプロイ
+gcloud run deploy go-api \
+  --image gcr.io/PROJECT_ID/go-api \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8081
+```
+
+## Docker構成について
+
+### Dockerfile.devの必要性
+
+このプロジェクトでは2つのDockerfileを提供しています：
+
+1. **Dockerfile** - 本番用
+   - マルチステージビルド
+   - 軽量なAlpineベース
+   - セキュリティ強化（非rootユーザー）
+   - ヘルスチェック機能
+
+2. **Dockerfile.dev** - 開発用（オプション）
+   - ホットリロード対応
+   - 開発ツール含む
+   - ボリュームマウント対応
+
+### 代替案
+
+Dockerfile.devを削除したい場合は、docker-compose.ymlで本番用Dockerfileを使用し、コマンドをオーバーライドする方法も可能です：
+
+```yaml
+api-dev:
+  build:
+    context: .
+    dockerfile: Dockerfile  # 本番用を使用
+  command: sh -c "go install github.com/air-verse/air@latest && air"  # 開発用コマンド
+```
+
+### ポート設定
+
+- **ローカル実行**: `http://localhost:8081`
+- **Docker実行**: `http://localhost:8083`
+
+ポート8083を選択した理由：
+- 既存のコンテナ（palmu-api-go, palmu-api等）との競合を避ける
+- 他のプロジェクトで使用されていない安全なポート
 
 ## DDDの利点
 
